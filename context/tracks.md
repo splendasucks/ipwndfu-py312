@@ -4,32 +4,6 @@ Registry of work units. Update status when starting, blocking, or finishing work
 
 ## Active
 
-### port-dfu-pwn-routing
-
-| Field | Value |
-|-------|-------|
-| Type | fix / feat |
-| Branch | `fix/port-dfu-detection-issue-1` |
-| Issue | [#1](https://github.com/splendasucks/ipwndfu-py312/issues/1) |
-| PR | [#2](https://github.com/splendasucks/ipwndfu-py312/pull/2) (base); follow-up commit pending |
-| Status | **in progress** (uncommitted local changes) |
-
-**Goal:** Accept Port DFU (`05ac:f014`) for `pwn` when classic DFU (`05ac:1227`) is absent. Decode AP CPID from packed `BDID:` per libirecovery.
-
-**Done locally:**
-- `find_exploit_dfu_devices()` — classic preferred, Port DFU fallback
-- `parse_dfu_serial(..., port_dfu=True)` + `extract_ap_identifiers_from_port_dfu()`
-- Runner + CLI messaging updated
-- 38 tests passing; ruff clean
-
-**Remaining:**
-- [ ] Commit and push to PR branch
-- [ ] Phase 2.1: Port DFU USB packet size / `IRECV_SEND_OPT_DFU_SMALL_PKT` when sending payloads
-
-**Hardware note:** User device decodes to CPID `0x8140` (A18 / iPhone 16 Pro) — correctly reports `unsupported CPID`, not “no device”.
-
----
-
 ### phase-2.1-usb-payloads
 
 | Field | Value |
@@ -57,6 +31,15 @@ Registry of work units. Update status when starting, blocking, or finishing work
 |-------|-------|
 | Status | **done** (stubs) |
 | Commit | `54ca56b` — registry, runner, A5–A11 modules, `pwn` CLI |
+
+### port-dfu-pwn-routing
+
+| Field | Value |
+|-------|-------|
+| Status | **done** |
+| Commit | `24e33bf` on `fix/port-dfu-detection-issue-1` |
+| Issue | [#1](https://github.com/splendasucks/ipwndfu-py312/issues/1) |
+| PR | [#2](https://github.com/splendasucks/ipwndfu-py312/pull/2) |
 
 ## Backlog
 
