@@ -65,10 +65,11 @@ Put a compatible device into **DFU mode**, then:
 
 ```bash
 # List USB devices / sanity check
-uv run python -m ipwndfu_py312.cli devices
+uv run ipwndfu devices
 
 # Run checkm8 exploit (research use only)
-uv run python -m ipwndfu_py312.cli pwn
+uv run ipwndfu pwn
+# Exit codes: 0 success, 1 no DFU device, 2 unsupported/failed, 3 routed (payload port pending)
 
 # Interactive shell after successful pwn
 uv run python -m ipwndfu_py312.cli shell

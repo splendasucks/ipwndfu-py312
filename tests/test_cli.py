@@ -24,11 +24,29 @@ class TestCliEntry:
         sample = UsbDeviceInfo(0x05AC, 0x1227, "Apple Inc.", "DFU Mode")
         with patch("ipwndfu_py312.cli.list_usb_devices", return_value=[sample]):
             with patch("ipwndfu_py312.cli.find_dfu_devices", return_value=[sample]):
-                assert main(["devices"]) == 0
+                with patch("ipwndfu_py312.cli.find_port_dfu_devices", return_value=[]):
+                    assert main(["devices"]) == 0
 
     @pytest.mark.unit
-    def test_pwn_not_yet_implemented(self):
-        assert main(["pwn"]) == 2
+    def test_devices_command_marks_port_dfu(self, capsys):
+        port = UsbDeviceInfo(0x05AC, 0xF014, "Apple Inc.", "Apple Device (Port DFU Mode)")
+        with patch("ipwndfu_py312.cli.list_usb_devices", return_value=[port]):
+            with patch("ipwndfu_py312.cli.find_dfu_devices", return_value=[]):
+                with patch("ipwndfu_py312.cli.find_port_dfu_devices", return_value=[port]):
+                    assert main(["devices"]) == 0
+        assert "[Port DFU]" in capsys.readouterr().out
+
+    @pytest.mark.unit
+    def test_pwn_without_device_exits_one(self):
+        with patch("ipwndfu_py312.cli.run_checkm8") as mock_pwn:
+            from ipwndfu_py312.exploits.base import ExploitResult, ExploitStatus
+
+            mock_pwn.return_value = ExploitResult(
+                status=ExploitStatus.NO_DEVICE,
+                soc="",
+                message="No Apple DFU device",
+            )
+            assert main(["pwn"]) == 1
 
     @pytest.mark.unit
     def test_missing_command_exits_nonzero(self):
