@@ -5,6 +5,7 @@ from ipwndfu_py312.usb.device import (
     UsbDeviceInfo,
     apple_dfu_mode,
     find_dfu_devices,
+    find_exploit_dfu_devices,
     find_port_dfu_devices,
     list_usb_devices,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "UsbDeviceInfo",
     "apple_dfu_mode",
     "find_dfu_devices",
+    "find_exploit_dfu_devices",
     "find_port_dfu_devices",
     "list_usb_devices",
     "parse_dfu_serial",

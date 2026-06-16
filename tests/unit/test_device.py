@@ -9,6 +9,7 @@ import pytest
 from ipwndfu_py312.usb.device import (
     UsbDeviceInfo,
     find_dfu_devices,
+    find_exploit_dfu_devices,
     find_port_dfu_devices,
     list_usb_devices,
 )
@@ -36,9 +37,7 @@ class TestUsbEnumeration:
 
     @pytest.mark.unit
     def test_find_port_dfu_devices_filters_apple_port_dfu_pid(self):
-        port_dfu = UsbDeviceInfo(
-            0x05AC, 0xF014, "Apple Inc.", "Apple Device (Port DFU Mode)"
-        )
+        port_dfu = UsbDeviceInfo(0x05AC, 0xF014, "Apple Inc.", "Apple Device (Port DFU Mode)")
         classic = UsbDeviceInfo(0x05AC, 0x1227, "Apple Inc.", "DFU Mode")
         with patch(
             "ipwndfu_py312.usb.device.list_usb_devices",
@@ -46,6 +45,22 @@ class TestUsbEnumeration:
         ):
             assert find_port_dfu_devices() == [port_dfu]
             assert find_dfu_devices() == [classic]
+
+    @pytest.mark.unit
+    def test_find_exploit_dfu_devices_prefers_classic(self):
+        port_dfu = UsbDeviceInfo(0x05AC, 0xF014, "Apple Inc.", "Port DFU")
+        classic = UsbDeviceInfo(0x05AC, 0x1227, "Apple Inc.", "DFU Mode")
+        with patch(
+            "ipwndfu_py312.usb.device.list_usb_devices",
+            return_value=[port_dfu, classic],
+        ):
+            assert find_exploit_dfu_devices() == [classic]
+
+    @pytest.mark.unit
+    def test_find_exploit_dfu_devices_falls_back_to_port(self):
+        port_dfu = UsbDeviceInfo(0x05AC, 0xF014, "Apple Inc.", "Port DFU")
+        with patch("ipwndfu_py312.usb.device.list_usb_devices", return_value=[port_dfu]):
+            assert find_exploit_dfu_devices() == [port_dfu]
 
     @pytest.mark.unit
     def test_list_usb_devices_returns_empty_when_libusb_unavailable(self):

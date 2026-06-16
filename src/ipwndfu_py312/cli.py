@@ -10,6 +10,7 @@ from ipwndfu_py312.usb.device import (
     AppleDfuMode,
     apple_dfu_mode,
     find_dfu_devices,
+    find_exploit_dfu_devices,
     find_port_dfu_devices,
     list_usb_devices,
 )
@@ -38,13 +39,16 @@ def _cmd_devices() -> int:
             marker = ""
         print(f"  - {dev}{marker}")
 
-    if dfu:
-        print(f"\nDFU targets (checkm8): {len(dfu)}")
-    elif port_dfu:
-        print(f"\nPort DFU devices: {len(port_dfu)} (not classic DFU 05ac:1227)")
-        print("Re-enter DFU on the device to reach checkm8-ready mode.")
+    exploit_targets = find_exploit_dfu_devices()
+    if exploit_targets:
+        classic_n = len(dfu)
+        port_n = len(port_dfu) if not dfu else 0
+        if classic_n:
+            print(f"\nDFU targets (checkm8): {classic_n} classic (05ac:1227)")
+        if port_n:
+            print(f"\nDFU targets (checkm8): {port_n} Port DFU (05ac:f014)")
     else:
-        print("\nNo Apple DFU devices (05ac:1227). Put device in DFU mode and retry.")
+        print("\nNo Apple DFU devices (05ac:1227 or 05ac:f014). Put device in DFU mode and retry.")
     return 0
 
 

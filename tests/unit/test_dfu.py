@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from ipwndfu_py312.usb.dfu import DfuIdentifiers, parse_dfu_serial
+from ipwndfu_py312.usb.dfu import (
+    DfuIdentifiers,
+    extract_ap_identifiers_from_port_dfu,
+    parse_dfu_serial,
+)
 
 
 class TestParseDfuSerial:
@@ -30,3 +34,19 @@ class TestParseDfuSerial:
     def test_malformed_cpid_raises(self):
         with pytest.raises(ValueError, match="CPID"):
             parse_dfu_serial("CPID:ZZZZ")
+
+    @pytest.mark.unit
+    def test_port_dfu_derives_ap_cpid_from_packed_bdid(self):
+        serial = "SDOM:01 CPID:0022 BDID:000000000C801500 ECID:001 CPFM:03 SCEP:00 CPRV:1A3"
+        ids = parse_dfu_serial(serial, port_dfu=True)
+        assert ids == DfuIdentifiers(cpid=0x8015, bdid=0x0C)
+
+
+class TestExtractApIdentifiersFromPortDfu:
+    @pytest.mark.unit
+    def test_matches_libirecovery_bit_layout(self):
+        packed = int("000000000C801500", 16)
+        assert extract_ap_identifiers_from_port_dfu(packed) == DfuIdentifiers(
+            cpid=0x8015,
+            bdid=0x0C,
+        )

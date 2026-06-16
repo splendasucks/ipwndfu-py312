@@ -25,7 +25,8 @@ class TestCliEntry:
         with patch("ipwndfu_py312.cli.list_usb_devices", return_value=[sample]):
             with patch("ipwndfu_py312.cli.find_dfu_devices", return_value=[sample]):
                 with patch("ipwndfu_py312.cli.find_port_dfu_devices", return_value=[]):
-                    assert main(["devices"]) == 0
+                    with patch("ipwndfu_py312.cli.find_exploit_dfu_devices", return_value=[sample]):
+                        assert main(["devices"]) == 0
 
     @pytest.mark.unit
     def test_devices_command_marks_port_dfu(self, capsys):
@@ -33,8 +34,11 @@ class TestCliEntry:
         with patch("ipwndfu_py312.cli.list_usb_devices", return_value=[port]):
             with patch("ipwndfu_py312.cli.find_dfu_devices", return_value=[]):
                 with patch("ipwndfu_py312.cli.find_port_dfu_devices", return_value=[port]):
-                    assert main(["devices"]) == 0
-        assert "[Port DFU]" in capsys.readouterr().out
+                    with patch("ipwndfu_py312.cli.find_exploit_dfu_devices", return_value=[port]):
+                        assert main(["devices"]) == 0
+        out = capsys.readouterr().out
+        assert "[Port DFU]" in out
+        assert "DFU targets" in out
 
     @pytest.mark.unit
     def test_pwn_without_device_exits_one(self):

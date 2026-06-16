@@ -12,10 +12,9 @@ PORT_DFU_PID = 0xF014
 # Back-compat alias used across the codebase and docs.
 DFU_PID = CHECKM8_DFU_PID
 
-PORT_DFU_HINT = (
-    "Found Apple Port DFU (05ac:f014) but checkm8 requires classic DFU (05ac:1227). "
-    "Re-enter DFU on the device (screen stays black, iTunes/Finder does not show a "
-    "restore prompt). Unplug hubs/adapters if both normal and Port DFU interfaces appear."
+PORT_DFU_USB_NOTE = (
+    "Port DFU (05ac:f014) uses a different USB packet layout than classic DFU "
+    "(05ac:1227); exploit USB primitives must target the active mode."
 )
 
 
@@ -86,3 +85,11 @@ def find_dfu_devices() -> list[UsbDeviceInfo]:
 def find_port_dfu_devices() -> list[UsbDeviceInfo]:
     """Devices exposing Apple's Port DFU interface (05ac:f014)."""
     return [d for d in list_usb_devices() if apple_dfu_mode(d) is AppleDfuMode.PORT]
+
+
+def find_exploit_dfu_devices() -> list[UsbDeviceInfo]:
+    """DFU devices usable for checkm8 routing (classic preferred, then Port DFU)."""
+    classic = find_dfu_devices()
+    if classic:
+        return classic
+    return find_port_dfu_devices()

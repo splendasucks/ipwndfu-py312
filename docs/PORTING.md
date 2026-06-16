@@ -20,10 +20,10 @@ CPID is parsed from the Apple DFU USB serial string (`CPID:8015 …`). See `usb/
 
 | PID | Mode | checkm8 |
 |-----|------|---------|
-| `05ac:1227` | Classic DFU | Yes |
-| `05ac:f014` | Port DFU | No — re-enter DFU until `1227` appears |
+| `05ac:1227` | Classic DFU | Yes (direct bootrom USB) |
+| `05ac:f014` | Port DFU | Yes for routing — AP CPID is packed in the `BDID:` field (see `usb/dfu.py`) |
 
-Port DFU often appears when the device is only partially in recovery or when multiple USB interfaces are exposed (e.g. through a hub). The CLI labels `[Port DFU]` separately from `[DFU]`.
+Classic DFU exposes `CPID:` for the application processor. Port DFU exposes `CPID:0022` for the USB port controller; libirecovery derives AP `CPID`/`BDID` from the packed `BDID:` value. Phase 2.1 must use the correct USB packet size for the active PID.
 
 ## Phase 2.1 work
 

@@ -18,37 +18,40 @@ DFU = UsbDeviceInfo(
     serial="SDOM:01 CPID:8015 CPRV:11 BDID:04 ECID:001",
 )
 
+PORT_DFU_A11 = UsbDeviceInfo(
+    vendor_id=0x05AC,
+    product_id=PORT_DFU_PID,
+    manufacturer="Apple Inc.",
+    product="Apple Device (Port DFU Mode)",
+    serial=(
+        "SDOM:01 CPID:0022 BDID:000000000C801500 ECID:747D1772145A9529 "
+        "CPFM:03 SCEP:00 CPRV:1A3 PREV:2F"
+    ),
+)
+
 
 class TestRunCheckm8:
     @pytest.mark.unit
     def test_returns_error_when_no_dfu_device(self):
-        with (
-            patch("ipwndfu_py312.exploits.runner.find_dfu_devices", return_value=[]),
-            patch("ipwndfu_py312.exploits.runner.find_port_dfu_devices", return_value=[]),
-        ):
+        with patch("ipwndfu_py312.exploits.runner.find_exploit_dfu_devices", return_value=[]):
             result = run_checkm8()
         assert result.status == ExploitStatus.NO_DEVICE
+        assert "f014" in result.message
 
     @pytest.mark.unit
-    def test_port_dfu_only_returns_actionable_message(self):
-        port_dfu = UsbDeviceInfo(
-            0x05AC,
-            PORT_DFU_PID,
-            "Apple Inc.",
-            "Apple Device (Port DFU Mode)",
-        )
-        with (
-            patch("ipwndfu_py312.exploits.runner.find_dfu_devices", return_value=[]),
-            patch("ipwndfu_py312.exploits.runner.find_port_dfu_devices", return_value=[port_dfu]),
+    def test_port_dfu_routes_using_packed_bdid(self):
+        with patch(
+            "ipwndfu_py312.exploits.runner.find_exploit_dfu_devices",
+            return_value=[PORT_DFU_A11],
         ):
             result = run_checkm8()
-        assert result.status == ExploitStatus.NO_DEVICE
-        assert "f014" in result.message.lower()
-        assert "1227" in result.message
+        assert result.soc == "a11"
+        assert result.status == ExploitStatus.PAYLOAD_PENDING
+        assert "Port DFU" in result.message
 
     @pytest.mark.unit
     def test_routes_a11_cpid_to_a11_module(self):
-        with patch("ipwndfu_py312.exploits.runner.find_dfu_devices", return_value=[DFU]):
+        with patch("ipwndfu_py312.exploits.runner.find_exploit_dfu_devices", return_value=[DFU]):
             result = run_checkm8()
         assert result.soc == "a11"
         assert result.status == ExploitStatus.PAYLOAD_PENDING
@@ -56,6 +59,9 @@ class TestRunCheckm8:
     @pytest.mark.unit
     def test_returns_error_when_serial_missing_cpid(self):
         no_cpid = UsbDeviceInfo(0x05AC, 0x1227, "Apple", "DFU", serial="ECID:001")
-        with patch("ipwndfu_py312.exploits.runner.find_dfu_devices", return_value=[no_cpid]):
+        with patch(
+            "ipwndfu_py312.exploits.runner.find_exploit_dfu_devices",
+            return_value=[no_cpid],
+        ):
             result = run_checkm8()
         assert result.status == ExploitStatus.UNSUPPORTED
