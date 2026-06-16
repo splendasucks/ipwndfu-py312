@@ -1,0 +1,66 @@
+[project]
+name = "ipwndfu-py312"
+version = "0.1.0"
+description = "Python 3.12+ fork of ipwndfu for checkm8 / DFU research on Apple Silicon Macs"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.12"
+authors = [{ name = "splendasucks" }]
+keywords = ["ios", "dfu", "checkm8", "security-research", "usb"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: System :: Hardware",
+]
+dependencies = [
+    "pyusb>=1.2.1",
+    "libusb1>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
+
+[project.scripts]
+ipwndfu = "ipwndfu_py312.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/splendasucks/ipwndfu-py312"
+Repository = "https://github.com/splendasucks/ipwndfu-py312"
+Issues = "https://github.com/splendasucks/ipwndfu-py312/issues"
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ipwndfu_py312"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.8",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "unit: fast unit tests",
+]
