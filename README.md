@@ -1,101 +1,89 @@
 # ipwndfu-py312
 
+[![CI](https://github.com/splendasucks/ipwndfu-py312/actions/workflows/ci.yml/badge.svg)](https://github.com/splendasucks/ipwndfu-py312/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-GPL--3.0-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-macOS%20Sequoia%20%7C%20Apple%20Silicon-lightgrey.svg)](https://developer.apple.com/macos/)
 
-Python 3.12-compatible fork of [ipwndfu](https://github.com/axi0mX/ipwndfu) for iOS device exploitation research on Apple Silicon Macs. Supports checkm8-based DFU mode operations for security research and device recovery.
+Python 3.12 toolkit for **Apple DFU USB diagnostics** on macOS Apple Silicon. Enumerates classic and Port DFU interfaces, decodes libirecovery-compatible AP processor IDs from USB serial strings, and exposes a typed CLI with JSON output.
 
-> **Disclaimer:** This software is for authorized security research, education, and device recovery only. Exploiting devices you do not own or lack permission to test may violate law. The authors accept no liability for misuse.
+Includes a modular **checkm8 routing scaffold** (A5–A11) for community continuation — payloads are not ported; use `identify` on modern hardware.
 
-## Device compatibility
+> **Disclaimer:** For authorized security research, education, and device recovery only. Exploiting devices you do not own or lack permission to test may violate law.
 
-| SoC   | Devices (examples)              | iOS / bridgeOS range   | checkm8 |
-|-------|---------------------------------|------------------------|---------|
-| A5    | iPhone 4s, iPad 2, iPod touch 4 | iOS 4–9                | Yes     |
-| A6    | iPhone 5, iPad 4                | iOS 6–10               | Yes     |
-| A7    | iPhone 5s, iPad Air             | iOS 7–12               | Yes     |
-| A8    | iPhone 6, iPad mini 4           | iOS 8–12               | Yes     |
-| A9    | iPhone 6s, iPhone SE (1st)      | iOS 9–15               | Yes     |
-| A10   | iPhone 7, iPad (6th gen)        | iOS 10–16              | Yes     |
-| A11   | iPhone 8/X, iPhone SE (2nd)*    | iOS 11–17              | Yes     |
+## Quick start: identify your device
 
-\* A11 devices require booting with a specific key combination so the Secure Enclave does not patch the bootrom exploit window.
-
-Devices with A12 and newer SoCs are **not** vulnerable to checkm8.
-
-## Prerequisites (macOS Sequoia, arm64)
-
-1. [Homebrew](https://brew.sh) (`/opt/homebrew`)
-2. libusb (required for USB access to DFU devices):
-
-```bash
-brew install libusb
-```
-
-3. [uv](https://docs.astral.sh/uv/) package manager:
-
-```bash
-brew install uv
-```
-
-### libusb on macOS Sequoia
-
-Apple Silicon Macs use the arm64 Homebrew prefix. After installing libusb, ensure the dynamic library is visible:
-
-```bash
-export DYLD_LIBRARY_PATH="/opt/homebrew/lib:${DYLD_LIBRARY_PATH:-}"
-```
-
-If `pyusb` cannot find the device, run with elevated privileges only when necessary (`sudo` may be required for raw USB on some macOS versions). Prefer a single Terminal session with libusb installed via Homebrew rather than mixing Intel and arm64 Python builds.
-
-## Install
-
-Clone and sync dependencies with uv (never use bare `pip install`):
+Put the device in **DFU mode**, then:
 
 ```bash
 git clone https://github.com/splendasucks/ipwndfu-py312.git
 cd ipwndfu-py312
 uv sync
+uv run ipwndfu identify
 ```
 
-## Usage
+Example output (Port DFU, A18-class hardware):
 
-Put a compatible device into **DFU mode**, then:
+```
+Mode:     port
+Chip:     Apple A18 (T8140)
+AP CPID:  0x8140
+AP BDID:  0x0c
+ECID:     747D1772145A9529
+checkm8:  no
+USB:      Apple Inc. Apple Device (Port DFU Mode) (vid=0x05ac pid=0xf014)
+```
+
+Machine-readable export:
 
 ```bash
-# List USB devices / sanity check
-uv run python -m ipwndfu_py312.cli devices
-
-# Run checkm8 exploit (research use only)
-uv run python -m ipwndfu_py312.cli pwn
-
-# Interactive shell after successful pwn
-uv run python -m ipwndfu_py312.cli shell
+uv run ipwndfu devices --json
+uv run ipwndfu identify --json
 ```
 
-Legacy entry point (when port is complete):
+See [docs/DIAGNOSTICS.md](docs/DIAGNOSTICS.md) for the full command reference and JSON schema.
+
+## Prerequisites (macOS Sequoia, arm64)
+
+1. [Homebrew](https://brew.sh) (`/opt/homebrew`)
+2. libusb:
 
 ```bash
-uv run ipwndfu
+brew install libusb
 ```
 
-## Project structure
+3. [uv](https://docs.astral.sh/uv/):
 
-```
-ipwndfu-py312/
-├── README.md              # Install, compatibility, disclaimers
-├── LICENSE                # GPL-3.0-or-later (+ axi0mX attribution)
-├── pyproject.toml         # Hatchling build, uv deps (pyusb, libusb1)
-├── .gitignore             # Python, macOS, Xcode, firmware dumps
-├── STRUCTURE.md           # Full annotated tree (modules & port map)
-├── scripts/
-│   └── check_libusb.sh    # Verify Homebrew libusb on arm64
-├── src/ipwndfu_py312/     # Package (cli scaffold + future exploits)
-└── tests/                 # pytest (TDD for CLI)
+```bash
+brew install uv
 ```
 
-See [STRUCTURE.md](STRUCTURE.md) for the complete annotated file tree and module port map.
+If `pyusb` cannot open devices, ensure the arm64 library path is visible:
+
+```bash
+export DYLD_LIBRARY_PATH="/opt/homebrew/lib:${DYLD_LIBRARY_PATH:-}"
+```
+
+Run `scripts/check_libusb.sh` to verify the install.
+
+## Commands
+
+| Command | Purpose |
+|---------|---------|
+| `devices` | List USB devices; mark Apple DFU interfaces |
+| `devices --json` | JSON identity records for DFU devices |
+| **`identify`** | Chip name, CPID/BDID/ECID, checkm8 eligibility (**primary**) |
+| `pwn` | Experimental checkm8 route (A5–A11 only; payloads not ported) |
+| `shell` | Post-exploit shell (not implemented) |
+
+### checkm8 (historical / contributors)
+
+| SoC | checkm8 | Notes |
+|-----|---------|-------|
+| A5–A11 | Yes (bootrom) | Routed in `exploits/`; USB payloads pending |
+| A12+ | No | Use `identify` — `pwn` reports unsupported with chip name |
+
+Contributor guide: [docs/CHECKM8.md](docs/CHECKM8.md)
 
 ## Development
 
@@ -105,11 +93,31 @@ uv run pytest
 uv run ruff check .
 ```
 
+Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## Project structure
+
+```
+ipwndfu-py312/
+├── src/ipwndfu_py312/
+│   ├── identify.py          # Public diagnostics API
+│   ├── data/apple_chips.py  # CPID database
+│   ├── usb/                 # Enumeration + serial parse
+│   └── exploits/            # checkm8 scaffold (A5–A11)
+├── docs/
+│   ├── DIAGNOSTICS.md
+│   ├── CHECKM8.md
+│   └── CHIPDB.md
+└── tests/
+```
+
+See [STRUCTURE.md](STRUCTURE.md) for the annotated tree.
+
 ## License
 
-GPL-3.0-or-later — see [LICENSE](LICENSE). Forked from axi0mX/ipwndfu; respect original licensing and device laws in your jurisdiction.
+GPL-3.0-or-later — see [LICENSE](LICENSE). Forked from axi0mX/ipwndfu.
 
 ## Acknowledgments
 
 - [axi0mX](https://github.com/axi0mX) — original ipwndfu and checkm8
-- [checkm8](https://github.com/axi0mX/ipwndfu) community
+- [libirecovery](https://github.com/libimobiledevice/libirecovery) — CPID/device tables
