@@ -1,57 +1,57 @@
 # Annotated project structure
 
-Target layout for the Python 3.12 port. Files marked `(scaffold)` exist in this repo; others are planned for the full port.
+Diagnostics-first layout for the Python 3.12 Apple DFU toolkit. checkm8 exploit modules are contributor scaffolding.
 
 ```
 ipwndfu-py312/
-├── README.md                 # Install, compatibility, disclaimers
-├── STRUCTURE.md              # This file — annotated tree
-├── pyproject.toml            # PEP 518 project metadata (hatchling + uv)
-├── .gitignore                # Python, macOS, Xcode, firmware dumps
-├── LICENSE                   # GPL-3.0-or-later (to add)
+├── README.md                 # Quick start (identify), install, disclaimers
+├── STRUCTURE.md              # This file
+├── CONTRIBUTING.md           # Contributor policy (HIL for checkm8)
+├── pyproject.toml            # Hatchling + uv (pyusb, libusb1)
+├── LICENSE                   # GPL-3.0-or-later
 │
-├── src/
-│   └── ipwndfu_py312/        # Main package (scaffold)
-│       ├── __init__.py       # Version string, package docstring
-│       ├── cli.py            # Click/argparse entry: devices, pwn, shell
-│       ├── usb/              # USB transport layer
-│       │   ├── __init__.py
-│       │   ├── device.py     # pyusb + libusb1 device discovery
-│       │   └── dfu.py        # DFU mode detection and transfers
-│       ├── exploits/         # Per-SoC checkm8 payloads
-│       │   ├── __init__.py
-│       │   ├── a5.py         # A5 exploit chain
-│       │   ├── a6.py
-│       │   ├── a7.py
-│       │   ├── a8.py
-│       │   ├── a9.py
-│       │   ├── a10.py
-│       │   └── a11.py        # A11 requires no-SEP boot path
-│       ├── payloads/         # Binary blobs (git-lfs or submodule)
-│       │   └── README.md     # Provenance for each payload
-│       └── util/
-│           ├── __init__.py
-│           ├── hex.py        # Hex dump helpers
-│           └── logger.py     # Structured logging for USB traces
+├── context/                  # Product/tech/workflow artifacts for AI handoff
+│   ├── product.md
+│   ├── tech-stack.md
+│   ├── workflow.md
+│   ├── tracks.md
+│   └── styleguides/python.md
+│
+├── src/ipwndfu_py312/
+│   ├── __init__.py           # Version
+│   ├── cli.py                # devices, identify, pwn, shell
+│   ├── identify.py           # DeviceIdentity, identify_device(), identify_connected()
+│   ├── data/
+│   │   └── apple_chips.py    # CPID → chip name, checkm8_eligible
+│   ├── usb/
+│   │   ├── device.py         # libusb enumeration, DFU mode detection
+│   │   └── dfu.py            # Serial parse, Port DFU AP ID extraction
+│   ├── exploits/             # Per-SoC checkm8 routes (stubs / contrib)
+│   │   ├── registry.py
+│   │   ├── runner.py
+│   │   └── a5.py … a11.py
+│   └── util/                 # hex, logger helpers
 │
 ├── tests/
-│   ├── __init__.py
-│   ├── test_usb_mock.py      # Mock USB fixtures (no hardware)
-│   └── conftest.py           # pytest fixtures
+│   ├── test_cli.py
+│   └── unit/                 # dfu, identify, apple_chips, runner, …
 │
 ├── scripts/
-│   └── check_libusb.sh       # Verify Homebrew libusb on arm64
+│   └── check_libusb.sh
 │
 └── docs/
-    ├── DFU.md                # Entering DFU per device family
-    └── PORTING.md            # Notes from original ipwndfu
+    ├── DIAGNOSTICS.md        # User-facing identify workflow
+    ├── CHECKM8.md            # Contributor exploit porting
+    ├── CHIPDB.md             # CPID database provenance
+    └── PORTING.md            # Redirect to CHECKM8.md (legacy link)
 ```
 
-## Module map (original → fork)
+## Module map (original ipwndfu → fork)
 
-| Original (ipwndfu) | Planned location        |
-|--------------------|-------------------------|
-| `usb`              | `src/ipwndfu_py312/usb/` |
-| `checkm8`          | `src/ipwndfu_py312/exploits/` |
-| `dfuexec`          | `src/ipwndfu_py312/usb/dfu.py` |
-| `ipwndfu.py`       | `src/ipwndfu_py312/cli.py` |
+| Original | Fork location | Role |
+|----------|---------------|------|
+| USB discovery | `usb/device.py` | Enumeration |
+| DFU serial | `usb/dfu.py` | CPID/BDID parse |
+| — | `identify.py` + `data/apple_chips.py` | **Primary public API** |
+| `checkm8` | `exploits/` | Contributor scaffold |
+| `ipwndfu.py` | `cli.py` | CLI entry |

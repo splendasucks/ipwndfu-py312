@@ -5,66 +5,78 @@
 | Item | Choice |
 |------|--------|
 | OS (primary) | macOS Sequoia, arm64 |
-| Python | `>=3.12` (developed/tested on 3.14 in venv) |
+| Python | `>=3.12` |
 | USB backend | Homebrew `libusb` at `/opt/homebrew/lib` |
-| Hardware | Physical Apple device in DFU for HIL; mocks in CI |
+| Maintainer hardware | iPhone 16 Pro, Port DFU (`05ac:f014`, AP CPID `0x8140`) |
 
 ## Languages & frameworks
 
-- **Python 3.12+** — stdlib `argparse` CLI (no Click yet)
-- **pyusb** — USB enumeration and string descriptors
-- **libusb1** — libusb bindings / backend for pyusb
+- **Python 3.12+** — stdlib `argparse`, `json`, `dataclasses`
+- **pyusb** — USB enumeration
+- **libusb1** — libusb backend
 
 ## Dependencies (`pyproject.toml`)
 
-| Package | Constraint | Role |
-|---------|------------|------|
-| `pyusb` | `>=1.2.1` | USB device access |
-| `libusb1` | `>=3.1.0` | libusb backend |
-| `pytest` | `>=8.0` (dev) | Tests |
-| `ruff` | `>=0.8` (dev) | Lint + import sort |
+| Package | Role |
+|---------|------|
+| `pyusb` | USB device access |
+| `libusb1` | libusb backend |
+| `pytest`, `ruff` | dev only |
 
-**Policy:** Add deps only via `pyproject.toml`; use `uv sync`, not bare `pip install`.
+Policy: `uv sync` only; document new deps in this file.
 
-## Build & packaging
+## Public API surface
 
-- **Build backend:** Hatchling
-- **Layout:** `src/ipwndfu_py312/` (src layout)
-- **CLI entry:** `ipwndfu = ipwndfu_py312.cli:main`
+| Module | Role |
+|--------|------|
+| `identify.py` | `DeviceIdentity`, `identify_device()`, `identify_connected()` |
+| `data/apple_chips.py` | CPID → chip name, `checkm8_eligible` |
+| `usb/device.py` | Enumeration, DFU mode detection |
+| `usb/dfu.py` | Serial parsing, Port DFU AP ID extraction |
+| `exploits/*` | **Experimental** — checkm8 routing scaffold |
 
-## Tooling
+## JSON schema (`devices --json` / `identify --json`)
 
-```bash
-uv sync              # install deps
-uv sync --dev        # include pytest, ruff
-uv run pytest        # tests (pythonpath=src)
-uv run ruff check .  # lint (line-length 100, py312)
+Array of objects:
+
+```json
+{
+  "mode": "port",
+  "ap_cpid": "0x8140",
+  "ap_bdid": "0x0c",
+  "chip_name": "Apple A18 (T8140)",
+  "checkm8_eligible": false,
+  "ecid": "747D1772145A9529",
+  "raw_serial": "..."
+}
 ```
+
+`mode`: `checkm8` | `port` | `unknown`. Hex fields as `0x` prefixed strings.
+
+## Chip database
+
+- Location: `src/ipwndfu_py312/data/apple_chips.py`
+- Provenance: libirecovery `irecv_devices` CPID table (see `docs/CHIPDB.md`)
+- `checkm8_eligible`: true for A5–A11 CPIDs in registry only
+
+## CLI commands (v1)
+
+| Command | Primary? |
+|---------|----------|
+| `identify` | Yes |
+| `devices` / `devices --json` | Yes |
+| `pwn` | Experimental (A5–A11, payloads not ported) |
+| `shell` | Not implemented |
 
 ## USB identifiers
 
-| PID | Mode | Notes |
-|-----|------|-------|
-| `0x1227` | Classic DFU | Bootrom checkm8 target |
-| `0xf014` | Port DFU | AP CPID encoded in packed `BDID:` (libirecovery layout) |
-
-## External references
-
-- Upstream: [axi0mX/ipwndfu](https://github.com/axi0mX/ipwndfu)
-- Port DFU parsing: libirecovery `irecv_devices_get_device_by_client`
-- Docs in repo: `docs/PORTING.md`, `STRUCTURE.md`, `payloads/README.md`
+| PID | Mode |
+|-----|------|
+| `0x1227` | Classic DFU |
+| `0xf014` | Port DFU |
 
 ## Infrastructure
 
-- **Git remote:** `github.com/splendasucks/ipwndfu-py312`
-- **CI:** Not yet configured; local pytest + ruff are the gate
+- **Remote:** `github.com/splendasucks/ipwndfu-py312`
+- **CI:** GitHub Actions — pytest + ruff
 - **License:** GPL-3.0-or-later
-
-## Environment variables
-
-| Variable | When |
-|----------|------|
-| `DYLD_LIBRARY_PATH=/opt/homebrew/lib:...` | If pyusb cannot load libusb |
-| `sudo` | Sometimes required for raw USB on macOS |
-
-Verify libusb: `scripts/check_libusb.sh`

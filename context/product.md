@@ -2,56 +2,69 @@
 
 ## One-liner
 
-Python 3.12+ port of axi0mX/ipwndfu for checkm8 / DFU security research on Apple Silicon Macs.
+Python 3.12+ Apple DFU USB diagnostics library and CLI for macOS Apple Silicon.
 
 ## Problem
 
-Upstream ipwndfu targets legacy Python and is painful to run on macOS Sequoia arm64. Researchers need a typed, testable fork with modern tooling (`uv`, pytest, ruff) while preserving GPL licensing and axi0mX attribution.
+Upstream ipwndfu targets legacy Python and is painful on macOS Sequoia arm64. Modern iPhones often expose **Port DFU** (`05ac:f014`) rather than classic DFU (`05ac:1227`), and owners need a typed way to read SoC identity from USB serial strings without running closed tools. A checkm8-only narrative fails for maintainers without A5–A11 hardware.
 
 ## Solution
 
-Incremental port: USB discovery → DFU session parsing → per-SoC checkm8 routing → (future) USB exploit primitives and payloads → (future) post-exploit shell.
+Ship a **diagnostics-first** toolkit:
+
+1. libusb USB enumeration (classic + Port DFU)
+2. libirecovery-compatible AP CPID/BDID extraction from serial strings
+3. Chip identification database (CPID → human-readable name, checkm8 eligibility)
+4. CLI: `devices`, `identify`, JSON export
+5. Optional **checkm8 scaffold** (`exploits/`) for community contributors with legacy hardware
 
 ## Users
 
 | Persona | Need |
 |---------|------|
-| Security researcher | Reproduce checkm8 on owned A5–A11 hardware |
-| DFU / recovery hobbyist | Understand device mode and SoC from USB serial |
-| Maintainer (splendasucks) | Extend port without re-reading upstream each session |
+| **Device owner (modern iPhone)** | Know chip, mode, and recovery state from DFU USB |
+| DFU / recovery hobbyist | Understand Port DFU vs classic DFU |
+| Security researcher | Foundation for authorized research; checkm8 path if A5–A11 available |
+| Maintainer (splendasucks) | Extend without re-reading upstream; validate on own hardware |
 
 ## Core capabilities (by phase)
 
 | Phase | Status | Delivers |
 |-------|--------|----------|
-| 1 — USB foundation | Done | `devices` CLI, classic DFU detection (`05ac:1227`) |
-| 2 — Exploit routing | Done (stubs) | CPID registry, `pwn` CLI, A5–A11 modules return `PAYLOAD_PENDING` |
-| 2.1 — USB + payloads | Planned | Port upstream DFU transfers; binary payloads under `payloads/` |
-| 3 — Shell & recovery | Planned | Post-exploit shell, NOR/NAND helpers (subset) |
+| 1 — USB foundation | Done | `devices`, classic/Port DFU detection |
+| 2 — Session parsing | Done | CPID/BDID parse, Port DFU packed BDID decode |
+| **v1 — Identify** | **Active** | Chip DB, `identify` CLI, `devices --json` |
+| checkm8 scaffold | Done (stubs) | `pwn` routes A5–A11; payloads not ported |
+| checkm8 port | Community | Requires contributor hardware + HIL validation |
 
-## Device scope (checkm8)
+## Device scope
 
-**In scope:** Apple SoCs A5 through A11 (iPhone 4s era through iPhone X / 8).
+**Diagnostics:** Any Apple DFU-capable device (classic `1227` or Port `f014`), including A12+ (e.g. A18 / CPID `0x8140`).
 
-**Out of scope:** A12 and newer (e.g. A18 / iPhone 16 family, CPID `0x8140`). Port DFU (`05ac:f014`) may appear on modern devices; CLI accepts it for discovery and routing, but checkm8 does not apply.
+**checkm8:** A5–A11 only. Not a v1 success metric for the maintainer.
 
 ## Success metrics
 
 - `uv run pytest` and `uv run ruff check .` pass on every change
-- `uv run ipwndfu devices` / `pwn` give actionable messages without hardware surprises
-- Hardware matrix documented in `docs/PORTING.md` before claiming exploit support
+- `uv run ipwndfu identify` exits **0** on maintainer hardware (iPhone 16 Pro, Port DFU, CPID `0x8140`)
+- `devices --json` emits stable schema
+- CI green on push
+- README happy path does not require checkm8 hardware
+
+## Non-goals (maintainer)
+
+- Shipping working checkm8 exploit without hardware-in-the-loop validation
+- Phase 3 post-exploit shell as primary roadmap
+- Repo rename (keep `ipwndfu-py312` for GPL lineage)
 
 ## Legal / ethics
 
-Authorized research and owned devices only. Disclaimer shown on `pwn`. No silent exploitation of non-DFU devices.
+Authorized research and owned devices only. `pwn` shows research disclaimer. No silent exploitation of non-DFU devices.
 
-## Roadmap (high level)
+## Portfolio framing
 
-1. Land Port DFU routing (accept `f014`, decode AP CPID from packed `BDID`)
-2. Phase 2.1: USB control transfers + one SoC end-to-end on hardware
-3. Expand SoC coverage and payload provenance
-4. Phase 3 shell (deferred)
+> Modern Python 3.12 toolkit for Apple DFU USB analysis on macOS Apple Silicon: libusb enumeration, Port DFU decode, libirecovery-compatible AP identification, typed CLI with JSON output. Modular checkm8 scaffold (A5–A11) for community continuation; validated on current-generation hardware.
 
-## Related repos (splendasucks workspace)
+## Related repos
 
-Sibling repos under `quick-wins/`: `macos-devtools`, `dotfiles-m1`, `splendasucks-profile`. This product doc applies only to **ipwndfu-py312**.
+Sibling repos under `quick-wins/`: `macos-devtools`, `dotfiles-m1`, `splendasucks-profile`.

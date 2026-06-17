@@ -1,38 +1,35 @@
 # Python styleguide — ipwndfu-py312
 
-Project-specific conventions beyond ruff defaults.
-
 ## Layout
 
 - Package root: `src/ipwndfu_py312/`
-- USB layer: `usb/` — no exploit logic
-- Exploits: `exploits/` — per-SoC modules + `registry.py`, `runner.py`
-- Tests mirror domains: `tests/unit/test_*.py`, `tests/test_cli.py`
+- **Public API:** `identify.py`, `usb/` — stable for library consumers
+- **Experimental:** `exploits/` — checkm8 scaffold; not v1 promise
+- **Data:** `data/apple_chips.py` — CPID lookup table
+- Tests: `tests/unit/`, `tests/test_cli.py`
 
-## Naming
+## JSON output
 
-- Modules: `a5.py` … `a11.py` match SoC generation, not marketing names
-- Functions: `find_*_devices`, `parse_dfu_serial`, `run_checkm8`
-- Constants: `APPLE_VID`, `CHECKM8_DFU_PID`, `PORT_DFU_PID`
+- Use `DeviceIdentity.to_dict()` + stdlib `json.dumps`
+- No new JSON dependency
+- Hex integers as `0x` prefixed strings in JSON for stability
 
-## Types
+## identify module
 
-- Use `int | None` for optional parsed fields
-- `ExploitResult` / `ExploitStatus` for all `pwn` outcomes
-- Avoid `Any` unless interfacing with pyusb opaque handles
+- `identify_device(UsbDeviceInfo)` — pure, testable
+- `identify_connected()` — calls `find_exploit_dfu_devices()` or all DFU modes as appropriate
+- ECID parsed from `ECID:` token in serial when present
 
 ## USB / DFU
 
-- Never hardcode only `0x1227`; use `find_exploit_dfu_devices()` for `pwn`
-- Port DFU: pass `port_dfu=True` to serial parser (or use `session_from_device`)
-- Document USB mode assumptions in `docs/PORTING.md` when changing transfer code
+- Port DFU: use `session_from_device` / `parse_dfu_serial(..., port_dfu=True)`
+- Chip lookup: `lookup_chip(ap_cpid)` from `data.apple_chips`
 
 ## Tests
 
-- Patch at use site: `ipwndfu_py312.exploits.runner.find_exploit_dfu_devices`
-- Use realistic Apple serial strings in fixtures (classic and Port DFU)
-- No network or hardware in unit tests
+- Include Port DFU A18 fixture: `BDID:000000000C814000` → CPID `0x8140`
+- Patch USB at CLI boundary; unit-test `identify.py` directly
 
 ## Dependencies
 
-- Document new packages in `context/tech-stack.md` before adding to `pyproject.toml`
+- Document in `context/tech-stack.md` before adding to `pyproject.toml`
